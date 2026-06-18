@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { 
   signInWithPopup, 
   signInWithEmailAndPassword, 
-  signInWithCustomToken,
+  createUserWithEmailAndPassword,
+  updateProfile,
   GoogleAuthProvider 
 } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase';
-import { X, LogIn, Mail, Lock, User as UserIcon, AlertCircle, Sparkles, CheckCircle2 } from 'lucide-react';
+import { X, LogIn, Mail, Lock, User as UserIcon, AlertCircle, Sparkles } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface AuthModalProps {
@@ -24,12 +25,10 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [displayName, setDisplayName] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [loading, setLoading] = useState(false);
-  const [registerSuccess, setRegisterSuccess] = useState(false);
 
   if (!isOpen) return null;
 
   const handleClose = () => {
-    setRegisterSuccess(false);
     setErrorMsg('');
     setLoading(false);
     onClose();
@@ -66,35 +65,20 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
     try {
       if (isSignUp) {
-        // Llama a nuestra API personalizada para registro con verificación
-        const response = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password, displayName })
-        });
+        // Llama a Firebase en el cliente para registro estándar
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         
-        const data = await response.json();
-        
-        if (!response.ok) {
-          throw new Error(data.error || 'Error al registrar.');
+        if (displayName.trim() && userCredential.user) {
+          await updateProfile(userCredential.user, {
+            displayName: displayName.trim(),
+            photoURL: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userCredential.user.uid}`
+          });
         }
-
-        // Mostrar pantalla de éxito
-        setRegisterSuccess(true);
+        
+        handleClose();
       } else {
         // Sign In
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        
-        // Verifica que el correo haya sido validado a través de nuestro enlace,
-        // esto se marca como 'emailVerified: true' en nuestro endpoint /verify/:token
-        if (!userCredential.user.emailVerified) {
-             // Es importante cerrar la sesión recién iniciada si no está verificado
-             await auth.signOut();
-             setErrorMsg("Debes verificar tu correo antes de iniciar sesión. Por favor, revisa tu bandeja de entrada o la carpeta de SPAM.");
-             setLoading(false);
-             return;
-        }
-
+        await signInWithEmailAndPassword(auth, email, password);
         handleClose();
       }
     } catch (err: any) {
@@ -132,7 +116,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        onClick={registerSuccess ? undefined : handleClose}
+        onClick={handleClose}
         className="absolute inset-0 bg-black/80 backdrop-blur-xl"
       />
 
@@ -148,41 +132,21 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         <div className="h-1.5 w-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-600" />
 
         {/* Close Button */}
-        {!registerSuccess && (
-          <button 
-            onClick={handleClose}
-            className="absolute top-4 right-4 p-2 text-zinc-500 hover:text-white hover:bg-white/5 rounded-full transition-all"
-          >
-            <X size={16} />
-          </button>
-        )}
+        <button 
+          onClick={handleClose}
+          className="absolute top-4 right-4 p-2 text-zinc-500 hover:text-white hover:bg-white/5 rounded-full transition-all"
+        >
+          <X size={16} />
+        </button>
 
         <div className="p-6 flex flex-col gap-5">
-          {registerSuccess ? (
-            <div className="py-8 text-center space-y-4">
-              <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto text-blue-500 mb-6">
-                <CheckCircle2 size={32} />
-              </div>
-              <h2 className="text-xl font-bold text-white tracking-tight">Revisa tu correo</h2>
-              <p className="text-sm text-zinc-400 leading-relaxed max-w-sm mx-auto">
-                Hemos enviado un enlace de activación a <strong className="text-white">{email}</strong>. Por favor, haz clic en el enlace para validar tu cuenta e ingresar.
-              </p>
-              <button 
-                onClick={handleClose}
-                className="w-full bg-zinc-800 text-white font-bold py-3 px-4 rounded-xl hover:bg-zinc-700 active:scale-98 transition-all text-sm mt-4"
-              >
-                Cerrar
-              </button>
+          {/* Accent decoration */}
+          <div className="flex items-center gap-2">
+            <div className="w-5 h-5 bg-blue-500/20 text-blue-400 rounded-md flex items-center justify-center">
+              <Sparkles size={12} className="animate-pulse" />
             </div>
-          ) : (
-            <>
-              {/* Accent decoration */}
-              <div className="flex items-center gap-2">
-                <div className="w-5 h-5 bg-blue-500/20 text-blue-400 rounded-md flex items-center justify-center">
-                  <Sparkles size={12} className="animate-pulse" />
-                </div>
-                <span className="text-[10px] font-mono tracking-widest text-zinc-500 uppercase font-black">Acceso a Nexus</span>
-              </div>
+            <span className="text-[10px] font-mono tracking-widest text-zinc-500 uppercase font-black">Acceso a Nexus</span>
+          </div>
 
               <div className="space-y-1">
                 <h2 className="text-xl font-bold text-white tracking-tight">Iniciar Sesión</h2>
@@ -337,8 +301,6 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   </div>
                 </form>
               )}
-            </>
-          )}
         </div>
       </motion.div>
     </div>

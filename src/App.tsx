@@ -5,7 +5,7 @@ import { ChatWindow } from './components/ChatWindow';
 import { useNexusStore } from './store';
 import { Search, TrendingUp, Mail, LogIn, AlertTriangle, Settings, Home, Bell, User as UserIcon } from 'lucide-react';
 import { auth, googleProvider } from './firebase';
-import { signInWithPopup, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
+import { signInWithPopup, onAuthStateChanged } from 'firebase/auth';
 import { subscribeToPosts, testFirestoreConnection, saveUser, setOnlineStatus, subscribeToChats } from './services/firebaseService';
 import { SearchOverlay } from './components/SearchOverlay';
 import { AdminPanel } from './components/AdminPanel';
@@ -57,27 +57,6 @@ export default function App() {
     chatId?: string;
   } | null>(null);
 
-  useEffect(() => {
-    const checkVerificationToken = async () => {
-      const params = new URLSearchParams(window.location.search);
-      const token = params.get('token');
-      const verified = params.get('verified');
-      const error = params.get('error');
-      
-      if (verified === 'true' && token) {
-        try {
-          await signInWithCustomToken(auth, token);
-          window.history.replaceState({}, document.title, window.location.pathname);
-        } catch (err) {
-          console.error("Error validando el token de sesión:", err);
-        }
-      } else if (error) {
-        alert("Enlace de verificación inválido o caducado.");
-        window.history.replaceState({}, document.title, window.location.pathname);
-      }
-    };
-    checkVerificationToken();
-  }, []);
 
   // Register background service worker when app mounts
   useEffect(() => {
