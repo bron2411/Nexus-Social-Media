@@ -1,0 +1,13 @@
+{
+  "name": "Nexus Micro-Blogging",
+  "description": "Una plataforma de micro-blogging de alto rendimiento con chat en tiempo real, feeds dinámicos y compartición de medios, basada en una arquitectura distribuida.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ],
+  "majorCapabilities": [
+    "real_time_chat",
+    "media_sharing",
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

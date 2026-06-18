@@ -1,0 +1,86 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ==========================================
+    // 1. REGLA GLOBAL TEMPORAL (Para pruebas)
+    // ==========================================
+    match /{document=**} {
+      allow read, write: if isSignedIn();
+    }
+
+    // ==========================================
+    // 2. REGLAS ESPECÍFICAS DE COLECCIONES
+    // ==========================================
+
+    // Colección de Códigos de Verificación OTP
+    match /verification_codes/{document=**} {
+      allow read, write: if false;
+    }
+
+    // Colección de Usuarios
+    match /users/{userId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isOwner(userId) && incoming().isAdmin == false && incoming().isBanned == false;
+      allow update: if (isOwner(userId) && isNotBanned() && incoming().diff(existing()).affectedKeys().hasAll([]) && (incoming().isAdmin == existing().isAdmin))
+        || isAdmin();
+    }
+
+    // Colección de Posts
+    match /posts/{postId} {
+      allow read: if true;
+      allow create: if isNotBanned() && incoming().authorId == request.auth.uid;
+      allow update: if (isSignedIn() && isNotBanned() && (
+        // Permitir a cualquiera dar like o retweet si están autenticados
+        incoming().diff(existing()).affectedKeys().hasAny(['likesCount', 'retweetsCount'])
+        || isOwner(existing().authorId)
+      )) || isAdmin();
+      allow delete: if isAdmin() || isOwner(existing().authorId);
+    }
+
+    // Colección de Chats y Subcolección de Mensajes
+    match /chats/{chatId} {
+      allow read, write: if isSignedIn() && request.auth.uid in resource.data.participants;
+      allow create: if isSignedIn() && request.auth.uid in incoming().participants;
+      
+      match /messages/{messageId} {
+        allow read: if isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+        allow create: if isNotBanned() && incoming().senderId == request.auth.uid;
+      }
+    }
+
+    // Colección de Reportes
+    match /reports/{reportId} {
+      allow create: if isNotBanned() && incoming().reporterId == request.auth.uid;
+      allow read, list, update: if isAdmin();
+    }
+
+    // ==========================================
+    // 3. FUNCIONES DE UTILIDAD AUXILIARES
+    // ==========================================
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    
+    function isAdmin() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    function isNotBanned() {
+      return isSignedIn() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isBanned != true;
+    }
+
+    function isValidId(id) { return id is string && id.size() <= 128; }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // Validación de Usuario
+    function isValidUser(data) {
+      return data.uid == request.auth.uid
+        && data.username is string && data.username.size() >= 3
+        && data.keys().hasAll(['uid', 'username', 'createdAt'])
+        && data.createdAt == request.time;
+    }
+
+  } // Cierra match /databases/{database}/documents
+} // Cierra service cloud.firestore

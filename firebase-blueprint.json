@@ -1,0 +1,121 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Perfil de usuario en Nexus",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "ID único de Firebase Auth" },
+        "username": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "bio": { "type": "string" },
+        "followersCount": { "type": "number" },
+        "followingCount": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "username"]
+    },
+    "Post": {
+      "title": "Post",
+      "description": "Publicación o micro-blog",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "authorId": { "type": "string" },
+        "content": { "type": "string" },
+        "mediaUrl": { "type": "string" },
+        "mediaType": { "type": "string", "enum": ["image", "video"] },
+        "likesCount": { "type": "number" },
+        "commentsCount": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["authorId", "content", "createdAt"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Mensaje en tiempo real",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "chatId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "text": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["chatId", "senderId", "text", "createdAt"]
+    },
+    "Report": {
+      "title": "Report",
+      "description": "Reporte de contenido moderado",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "targetId": { "type": "string" },
+        "targetType": { "type": "string", "enum": ["post", "user", "comment"] },
+        "reporterId": { "type": "string" },
+        "reason": { "type": "string" },
+        "details": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "resolved", "dismissed"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["targetId", "targetType", "reporterId", "reason", "createdAt"]
+    },
+    "Notification": {
+      "title": "Notification",
+      "description": "Alerta o notificación en tiempo real para el usuario",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "recipientId": { "type": "string" },
+        "senderId": { "type": "string" },
+        "senderName": { "type": "string" },
+        "senderPhoto": { "type": "string" },
+        "type": { "type": "string", "enum": ["like", "comment", "mention", "message"] },
+        "contentOrTitle": { "type": "string" },
+        "postId": { "type": "string" },
+        "chatId": { "type": "string" },
+        "isRead": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["recipientId", "senderId", "senderName", "type", "contentOrTitle", "createdAt"]
+    },
+    "Follow": {
+      "title": "Follow",
+      "description": "Relación de seguimiento entre cuentas de usuario",
+      "type": "object",
+      "properties": {
+        "followerId": { "type": "string" },
+        "followingId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["followerId", "followingId", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Almacenamiento de perfiles de usuario"
+    },
+    "/posts/{postId}": {
+      "schema": "Post",
+      "description": "Feed global y personal"
+    },
+    "/chats/{chatId}/messages/{messageId}": {
+      "schema": "ChatMessage",
+      "description": "Mensajes segmentados por hilos de chat"
+    },
+    "/reports/{reportId}": {
+      "schema": "Report",
+      "description": "Cola de moderación"
+    },
+    "/notifications/{notificationId}": {
+      "schema": "Notification",
+      "description": "Notificaciones recibidas por los usuarios"
+    },
+    "/follows/{followId}": {
+      "schema": "Follow",
+      "description": "Relaciones de seguimiento entre nodos de la red"
+    }
+  }
+}
